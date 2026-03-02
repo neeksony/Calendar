@@ -5,26 +5,24 @@
 <title>Расписание храма</title>
 <style>
   body { font-family: Arial, sans-serif; background: #f9f9f9; padding: 20px; }
-  h1 { text-align: center; }
-  .event { padding: 10px; margin: 5px 0; border-bottom: 1px solid #ddd; }
+  h1 { text-align: center; color: #333; }
+  .event { padding: 12px; margin: 8px 0; border-bottom: 1px solid #ddd; background: #fff; border-radius: 4px; }
   .bold { font-weight: bold; color: #d32f2f; }
+  .date-header { font-size: 0.9em; color: #666; margin-bottom: 4px; }
 </style>
 </head>
 <body>
 <h1>Расписание храма на неделю</h1>
-<div id="schedule">Загрузка...</div>
+<div id="schedule">Загрузка расписания...</div>
 
 <script>
-// ==== НАЧАЛО НАСТРОЙКИ ====
-// Вставьте сюда URL вашего Apps Script
+// ==== НАСТРОЙКИ ====
+// Ваша новая ссылка на скрипт (исправлено)
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwbRMiY3qdA21-wSKQWviNJDBiMdBtRVMUgrUAG2pqJIJmjK82DGff2cvAbngRKgfvt/exec";
 
-// Вставьте название вашего престольного праздника (если хотите выделять)
 const PRESTOL_PRAZDNIK = "Престольный праздник";
-
-// Список дней недели на русском
 const DAY_NAMES = ["ВОСКРЕСЕНЬЕ","ПОНЕДЕЛЬНИК","ВТОРНИК","СРЕДА","ЧЕТВЕРГ","ПЯТНИЦА","СУББОТА"];
-// ==== КОНЕЦ НАСТРОЙКИ ====
+// ===================
 
 function isBoldEvent(title, date) {
     const day = DAY_NAMES[date.getDay()];
@@ -32,39 +30,50 @@ function isBoldEvent(title, date) {
 }
 
 fetch(SCRIPT_URL)
-  .then(res => res.json())
+  .then(res => {
+      if (!res.ok) throw new Error('Ошибка сети');
+      return res.json();
+  })
   .then(data => {
     const container = document.getElementById("schedule");
     container.innerHTML = "";
 
     const now = new Date();
 
-    // Сортируем события по дате
+    // Сортируем события по времени начала
     data.sort((a,b) => new Date(a.start) - new Date(b.start));
 
     data.forEach(ev => {
       const start = new Date(ev.start);
       const end = new Date(ev.end);
 
-      // Показываем только будущие события
-      if (start < now) return;
+      // Пропускаем старые события (которые закончились более 2 часов назад)
+      const twoHoursAgo = new Date(now.getTime() - (2 * 60 * 60 * 1000));
+      if (start < twoHoursAgo) return;
 
       const bold = isBoldEvent(ev.title, start);
       const dayName = DAY_NAMES[start.getDay()];
-      const time = start.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) +
-                   " - " + end.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+      
+      // Форматируем дату (число и месяц)
+      const dateStr = start.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+      
+      const time = start.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}) +
+                   " - " + end.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
 
       const div = document.createElement("div");
       div.className = "event";
-      div.innerHTML = `${bold ? '<span class="bold">' : ''}${dayName}, ${time}: ${ev.title}${bold ? '</span>' : ''}`;
+      div.innerHTML = `
+        <div class="date-header">${dayName}, ${dateStr}</div>
+        <div>${bold ? '<span class="bold">' : ''}${time}: ${ev.title}${bold ? '</span>' : ''}</div>
+      `;
       container.appendChild(div);
     });
 
-    if (!container.innerHTML) container.innerHTML = "<p>На ближайшие 7 дней событий нет.</p>";
+    if (!container.innerHTML) container.innerHTML = "<p>На ближайшие дни событий не найдено.</p>";
   })
   .catch(err => {
-    console.error("Ошибка загрузки событий:", err);
-    document.getElementById("schedule").innerHTML = "<p>Не удалось загрузить события.</p>";
+    console.error("Ошибка:", err);
+    document.getElementById("schedule").innerHTML = "<p>Не удалось загрузить события. Попробуйте обновить страницу.</p>";
   });
 </script>
 </body>
