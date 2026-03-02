@@ -1,37 +1,27 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Расписание храма</title>
-<style>
-body { margin:0; font-family: sans-serif; padding: 10px; }
-h2 { text-align:center; }
-.day { margin-bottom: 15px; }
-.bold { font-weight: bold; }
-.cross { color: darkred; }
-</style>
-</head>
-<body>
-<h2>Расписание на ближайшие 7 дней</h2>
-<div id="schedule">
-<!-- Сюда будут подгружаться события через API -->
-</div>
-
 <script>
-const events = [
-  {day:"Пятница", time:"17:00", title:"Вечернее богослужение"},
-  {day:"Суббота", time:"8:00", title:"Литургия"},
-  {day:"ВОСКРЕСЕНЬЕ", time:"9:00", title:"Божественная литургия", bold:true},
-  {day:"✝ 16 июня", time:"8:00", title:"Престольный праздник", bold:true}
-];
+const calendarId = "ВАШ_CALENDAR_ID"; // p5itre4asi1fmsnu50q7051va0@group.calendar.google.com
+const apiKey = "ВАШ_API_KEY"; // AIzaSyAXZGXLGnX7jIYGrBu2sz2YIlSQ33Qafhw
 
-const container = document.getElementById("schedule");
-events.forEach(ev=>{
-  const div = document.createElement("div");
-  div.className = "day";
-  div.innerHTML = `${ev.bold ? '<span class="bold">' : ''}${ev.day} <br> ${ev.time} — ${ev.title}${ev.bold ? '</span>' : ''}`;
-  container.appendChild(div);
-});
+fetch(`https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?key=${apiKey}&timeMin=${new Date().toISOString()}&maxResults=20&orderBy=startTime&singleEvents=true`)
+  .then(res => res.json())
+  .then(data => {
+    const container = document.getElementById("schedule");
+    container.innerHTML = ""; // очищаем старый контент
+    const dayNames = ["ВОСКРЕСЕНЬЕ","ПОНЕДЕЛЬНИК","ВТОРНИК","СРЕДА","ЧЕТВЕРГ","ПЯТНИЦА","СУББОТА"];
+    
+    data.items.forEach(ev => {
+      const start = new Date(ev.start.dateTime || ev.start.date);
+      const day = dayNames[start.getDay()];
+      const time = ev.start.dateTime ? start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "";
+      const bold = day === "ВОСКРЕСЕНЬЕ" || ev.summary.toLowerCase().includes("престольный");
+      const div = document.createElement("div");
+      div.className = "day";
+      div.innerHTML = `${bold ? '<span class="bold">' : ''}${day} <br> ${time} — ${ev.summary}${bold ? '</span>' : ''}`;
+      container.appendChild(div);
+    });
+  })
+  .catch(err => {
+    console.error("Ошибка при загрузке событий:", err);
+    document.getElementById("schedule").innerHTML = "<p>Не удалось загрузить события.</p>";
+  });
 </script>
-</body>
-</html>
