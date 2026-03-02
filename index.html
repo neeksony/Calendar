@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Расписание храма</title>
+<style>
+body { margin:0; font-family: sans-serif; padding: 10px; }
+h2 { text-align:center; }
+.day { margin-bottom: 15px; }
+.bold { font-weight: bold; }
+.cross { color: darkred; }
+</style>
+</head>
+<body>
+<h2>Расписание на ближайшие 7 дней</h2>
+<div id="schedule">
+<!-- Сюда будут подгружаться события через API -->
+</div>
+
+<script>
+const events = [
+  {day:"Пятница", time:"17:00", title:"Вечернее богослужение"},
+  {day:"Суббота", time:"8:00", title:"Литургия"},
+  {day:"ВОСКРЕСЕНЬЕ", time:"9:00", title:"Божественная литургия", bold:true},
+  {day:"✝ 16 июня", time:"8:00", title:"Престольный праздник", bold:true}
+];
+
+const container = document.getElementById("schedule");
+events.forEach(ev=>{
+  const div = document.createElement("div");
+  div.className = "day";
+  div.innerHTML = `${ev.bold ? '<span class="bold">' : ''}${ev.day} <br> ${ev.time} — ${ev.title}${ev.bold ? '</span>' : ''}`;
+  container.appendChild(div);
+});
+</script>
+</body>
+</html>
