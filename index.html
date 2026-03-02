@@ -6,50 +6,59 @@
 <title>Расписание храма</title>
 <style>
   body { 
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; 
     background: #f4f6f8; 
     padding: 15px; 
     margin: 0;
     color: #333;
-    font-size: 18px; /* Увеличенный основной шрифт */
+    font-size: 18px; 
   }
-  h1 { 
-    text-align: center; 
-    font-size: 26px; 
-    margin: 20px 0;
-    color: #222;
-  }
+  h1 { text-align: center; font-size: 24px; margin: 20px 0; color: #222; }
+  
+  /* Стиль карточки события */
   .event { 
     padding: 16px; 
     margin: 12px 0; 
     background: #fff; 
-    border-radius: 10px; 
-    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-    border-left: 5px solid #ccc; /* Серая полоска для обычных дней */
+    border-radius: 12px; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.07);
+    border-left: 6px solid #ccc;
+    animation: fadeIn 0.5s ease; /* Плавное появление */
   }
-  .bold-event { 
-    border-left: 5px solid #d32f2f; /* Красная полоска для праздников */
+  .bold-event { border-left: 6px solid #d32f2f; }
+  .bold-text { font-weight: bold; color: #d32f2f; }
+  .date-header { font-size: 13px; color: #888; margin-bottom: 6px; text-transform: uppercase; font-weight: 700; }
+
+  /* АНИМАЦИЯ ЗАГРУЗКИ */
+  #loader-container {
+    text-align: center;
+    margin-top: 50px;
   }
-  .bold-text { 
-    font-weight: bold; 
-    color: #d32f2f; 
+  .spinner {
+    border: 4px solid rgba(0,0,0,0.1);
+    border-top: 4px solid #d32f2f;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    display: inline-block;
   }
-  .date-header { 
-    font-size: 14px; 
-    color: #777; 
-    margin-bottom: 8px; 
-    text-transform: uppercase; 
-    font-weight: 600;
-    letter-spacing: 0.5px;
-  }
-  .time-title {
-    line-height: 1.4;
-  }
+  .loading-text { color: #666; font-size: 16px; margin-top: 15px; }
+
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 </head>
 <body>
-<h1>Расписание храма на неделю</h1>
-<div id="schedule">Загрузка...</div>
+
+<h1>Расписание храма</h1>
+
+<div id="schedule">
+  <div id="loader-container">
+    <div class="spinner"></div>
+    <div class="loading-text">Связываюсь с календарем...</div>
+  </div>
+</div>
 
 <script>
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwbRMiY3qdA21-wSKQWviNJDBiMdBtRVMUgrUAG2pqJIJmjK82DGff2cvAbngRKgfvt/exec";
@@ -64,15 +73,15 @@ fetch(SCRIPT_URL)
   .then(res => res.json())
   .then(data => {
     const container = document.getElementById("schedule");
-    container.innerHTML = "";
-    const now = new Date();
+    container.innerHTML = ""; // Убираем крутилку
 
     data.sort((a,b) => new Date(a.start) - new Date(b.start));
+    const now = new Date();
+    const twoHoursAgo = new Date(now.getTime() - (2 * 60 * 60 * 1000));
 
     data.forEach(ev => {
       const start = new Date(ev.start);
       const end = new Date(ev.end);
-      const twoHoursAgo = new Date(now.getTime() - (2 * 60 * 60 * 1000));
       if (start < twoHoursAgo) return;
 
       const isSpecial = isBoldEvent(ev.title, start);
@@ -85,9 +94,7 @@ fetch(SCRIPT_URL)
       div.className = "event" + (isSpecial ? " bold-event" : "");
       div.innerHTML = `
         <div class="date-header">${dayName}, ${dateStr}</div>
-        <div class="time-title ${isSpecial ? 'bold-text' : ''}">
-          ${timeRange}: ${ev.title}
-        </div>
+        <div class="${isSpecial ? 'bold-text' : ''}">${timeRange}: ${ev.title}</div>
       `;
       container.appendChild(div);
     });
@@ -95,7 +102,7 @@ fetch(SCRIPT_URL)
     if (!container.innerHTML) container.innerHTML = "<p style='text-align:center'>Событий не найдено.</p>";
   })
   .catch(err => {
-    document.getElementById("schedule").innerHTML = "<p>Ошибка загрузки.</p>";
+    document.getElementById("schedule").innerHTML = "<p style='text-align:center'>Ошибка связи. Проверьте интернет или обновите страницу.</p>";
   });
 </script>
 </body>
