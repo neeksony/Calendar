@@ -2,103 +2,100 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Расписание храма</title>
-  <style>
+<style>
   body { 
-    font-family: Arial, sans-serif; 
-    background: #f9f9f9; 
-    padding: 20px; 
-    font-size: 17px; /* Увеличили основной шрифт на 1-2 пункта */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+    background: #f4f6f8; 
+    padding: 15px; 
+    margin: 0;
+    color: #333;
+    font-size: 18px; /* Увеличенный основной шрифт */
   }
   h1 { 
     text-align: center; 
-    color: #333; 
-    font-size: 24px; 
+    font-size: 26px; 
+    margin: 20px 0;
+    color: #222;
   }
   .event { 
-    padding: 14px; 
-    margin: 10px 0; 
-    border-bottom: 1px solid #ddd; 
+    padding: 16px; 
+    margin: 12px 0; 
     background: #fff; 
-    border-radius: 6px; 
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    border-radius: 10px; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    border-left: 5px solid #ccc; /* Серая полоска для обычных дней */
   }
-  .bold { 
+  .bold-event { 
+    border-left: 5px solid #d32f2f; /* Красная полоска для праздников */
+  }
+  .bold-text { 
     font-weight: bold; 
     color: #d32f2f; 
   }
   .date-header { 
-    font-size: 15px; /* Тоже чуть крупнее */
-    color: #666; 
-    margin-bottom: 6px; 
+    font-size: 14px; 
+    color: #777; 
+    margin-bottom: 8px; 
     text-transform: uppercase; 
+    font-weight: 600;
     letter-spacing: 0.5px;
+  }
+  .time-title {
+    line-height: 1.4;
   }
 </style>
 </head>
 <body>
 <h1>Расписание храма на неделю</h1>
-<div id="schedule">Загрузка расписания...</div>
+<div id="schedule">Загрузка...</div>
 
 <script>
-// ==== НАСТРОЙКИ ====
-// Ваша новая ссылка на скрипт (исправлено)
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwbRMiY3qdA21-wSKQWviNJDBiMdBtRVMUgrUAG2pqJIJmjK82DGff2cvAbngRKgfvt/exec";
-
 const PRESTOL_PRAZDNIK = "Престольный праздник";
 const DAY_NAMES = ["ВОСКРЕСЕНЬЕ","ПОНЕДЕЛЬНИК","ВТОРНИК","СРЕДА","ЧЕТВЕРГ","ПЯТНИЦА","СУББОТА"];
-// ===================
 
 function isBoldEvent(title, date) {
-    const day = DAY_NAMES[date.getDay()];
-    return day === "ВОСКРЕСЕНЬЕ" || title.includes(PRESTOL_PRAZDNIK);
+    return date.getDay() === 0 || title.includes(PRESTOL_PRAZDNIK);
 }
 
 fetch(SCRIPT_URL)
-  .then(res => {
-      if (!res.ok) throw new Error('Ошибка сети');
-      return res.json();
-  })
+  .then(res => res.json())
   .then(data => {
     const container = document.getElementById("schedule");
     container.innerHTML = "";
-
     const now = new Date();
 
-    // Сортируем события по времени начала
     data.sort((a,b) => new Date(a.start) - new Date(b.start));
 
     data.forEach(ev => {
       const start = new Date(ev.start);
       const end = new Date(ev.end);
-
-      // Пропускаем старые события (которые закончились более 2 часов назад)
       const twoHoursAgo = new Date(now.getTime() - (2 * 60 * 60 * 1000));
       if (start < twoHoursAgo) return;
 
-      const bold = isBoldEvent(ev.title, start);
+      const isSpecial = isBoldEvent(ev.title, start);
       const dayName = DAY_NAMES[start.getDay()];
-      
-      // Форматируем дату (число и месяц)
       const dateStr = start.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
-      
-      const time = start.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}) +
-                   " - " + end.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
+      const timeRange = start.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}) +
+                        " - " + end.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
 
       const div = document.createElement("div");
-      div.className = "event";
+      div.className = "event" + (isSpecial ? " bold-event" : "");
       div.innerHTML = `
         <div class="date-header">${dayName}, ${dateStr}</div>
-        <div>${bold ? '<span class="bold">' : ''}${time}: ${ev.title}${bold ? '</span>' : ''}</div>
+        <div class="time-title ${isSpecial ? 'bold-text' : ''}">
+          ${timeRange}: ${ev.title}
+        </div>
       `;
       container.appendChild(div);
     });
 
-    if (!container.innerHTML) container.innerHTML = "<p>На ближайшие дни событий не найдено.</p>";
+    if (!container.innerHTML) container.innerHTML = "<p style='text-align:center'>Событий не найдено.</p>";
   })
   .catch(err => {
-    console.error("Ошибка:", err);
-    document.getElementById("schedule").innerHTML = "<p>Не удалось загрузить события. Попробуйте обновить страницу.</p>";
+    document.getElementById("schedule").innerHTML = "<p>Ошибка загрузки.</p>";
   });
 </script>
 </body>
