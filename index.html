@@ -1,57 +1,71 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Расписание Свято-Троицкого храма</title>
+<title>Расписание храма</title>
 <style>
-  body { margin: 0; font-family: sans-serif; padding: 10px; background: #f9f9f9; }
-  h2 { text-align: center; margin-bottom: 20px; }
-  .day { margin-bottom: 15px; padding: 8px; background: #fff; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-  .bold { font-weight: bold; color: #2c3e50; }
-  .cross { color: darkred; }
+  body { font-family: Arial, sans-serif; background: #f9f9f9; padding: 20px; }
+  h1 { text-align: center; }
+  .event { padding: 10px; margin: 5px 0; border-bottom: 1px solid #ddd; }
+  .bold { font-weight: bold; color: #d32f2f; }
 </style>
 </head>
 <body>
-
-<h2>Расписание на ближайшие 7 дней</h2>
-
-<div id="schedule">
-  <!-- Сюда будут вставляться события из Google Calendar -->
-</div>
+<h1>Расписание храма на неделю</h1>
+<div id="schedule">Загрузка...</div>
 
 <script>
-// ==== ВАЖНО ====
-// Замените эти значения на свои
-const calendarId = "ВАШ_CALENDAR_ID"; // p5itre4asi1fmsnu50q7051va0@group.calendar.google.com
-const apiKey = "ВАШ_API_KEY"; // AIzaSyAXZGXLGnX7jIYGrBu2sz2YIlSQ33Qafhw
+// ==== НАЧАЛО НАСТРОЙКИ ====
+// Вставьте сюда URL вашего Apps Script
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz4zvUgduC9b4WNbJrI-F-SMw9NcqfLOVsvQA1_PptNAltbnVxdsHiC6nePRN6dbMy1Mg/exec";
 
-// Получаем сегодняшнюю дату для фильтрации ближайших событий
-const timeMin = new Date().toISOString();
+// Вставьте название вашего престольного праздника (если хотите выделять)
+const PRESTOL_PRAZDNIK = "Престольный праздник";
 
-fetch(`https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?key=${apiKey}&timeMin=${timeMin}&maxResults=20&orderBy=startTime&singleEvents=true`)
+// Список дней недели на русском
+const DAY_NAMES = ["ВОСКРЕСЕНЬЕ","ПОНЕДЕЛЬНИК","ВТОРНИК","СРЕДА","ЧЕТВЕРГ","ПЯТНИЦА","СУББОТА"];
+// ==== КОНЕЦ НАСТРОЙКИ ====
+
+function isBoldEvent(title, date) {
+    const day = DAY_NAMES[date.getDay()];
+    return day === "ВОСКРЕСЕНЬЕ" || title.includes(PRESTOL_PRAZDNIK);
+}
+
+fetch(SCRIPT_URL)
   .then(res => res.json())
   .then(data => {
     const container = document.getElementById("schedule");
-    container.innerHTML = ""; // очищаем старый контент
-    const dayNames = ["ВОСКРЕСЕНЬЕ","ПОНЕДЕЛЬНИК","ВТОРНИК","СРЕДА","ЧЕТВЕРГ","ПЯТНИЦА","СУББОТА"];
-    
-    data.items.forEach(ev => {
-      const start = new Date(ev.start.dateTime || ev.start.date);
-      const day = dayNames[start.getDay()];
-      const time = ev.start.dateTime ? start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "";
-      const bold = day === "ВОСКРЕСЕНЬЕ" || ev.summary.toLowerCase().includes("престольный");
+    container.innerHTML = "";
+
+    const now = new Date();
+
+    // Сортируем события по дате
+    data.sort((a,b) => new Date(a.start) - new Date(b.start));
+
+    data.forEach(ev => {
+      const start = new Date(ev.start);
+      const end = new Date(ev.end);
+
+      // Показываем только будущие события
+      if (start < now) return;
+
+      const bold = isBoldEvent(ev.title, start);
+      const dayName = DAY_NAMES[start.getDay()];
+      const time = start.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) +
+                   " - " + end.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+
       const div = document.createElement("div");
-      div.className = "day";
-      div.innerHTML = `${bold ? '<span class="bold">' : ''}${day} <br> ${time} — ${ev.summary}${bold ? '</span>' : ''}`;
+      div.className = "event";
+      div.innerHTML = `${bold ? '<span class="bold">' : ''}${dayName}, ${time}: ${ev.title}${bold ? '</span>' : ''}`;
       container.appendChild(div);
     });
+
+    if (!container.innerHTML) container.innerHTML = "<p>На ближайшие 7 дней событий нет.</p>";
   })
   .catch(err => {
-    console.error("Ошибка при загрузке событий:", err);
+    console.error("Ошибка загрузки событий:", err);
     document.getElementById("schedule").innerHTML = "<p>Не удалось загрузить события.</p>";
   });
 </script>
-
 </body>
 </html>
